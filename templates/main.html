@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Super-resolution Prediction</title>
+    <style>
+        /* 省略之前的样式 */
+        body{
+            background-color: rgba(55,65,81,0.4);
+
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            margin-bottom: 10px;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            width: 90%;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .preview-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .preview-container div {
+            width: 48%;
+            /*padding: 10px;*/
+            /*border: 1px solid #ccc;*/
+            /*border-radius: 8px;*/
+            /*min-height: 400px;*/
+        }
+        .preview-container div div{
+            width: 100%;
+            padding: 2px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            min-height: 200px;
+        }
+
+        .preview-container img {
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+            border-radius: 8px;
+            max-height: 200px;
+        }
+
+        select {
+            /*margin-bottom: 10px;*/
+            padding: 5px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            width:10%;
+            text-align: center;
+            cursor: pointer;
+        }
+        .param {
+            display: block;
+            text-align: left;
+        }
+        #genera{
+            width: 40%;
+            background-color: #fed7aa;
+            background: linear-gradient(to right, #ff8a00, #ea580c);
+            border: none;
+            /*color: #ea580c;*/
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            opacity: 0.8;
+        }
+
+        #outputPreview {
+          position: relative;
+        }
+
+        #download{
+            opacity: 0.6;
+            width: 5%;
+            /*height: 5%;*/
+            box-sizing: border-box;
+            border-width: 0;
+            border-style: solid;
+            border: none;
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 0;
+        }
+        /*.svelte-1030q2h{*/
+        /*    height: 5%;*/
+
+        /*}*/
+        #bu-download{
+            height: 5%;
+            /*display: flex;*/
+        }
+        .tags{
+            border: 1px solid #ccc;
+            /*padding: 2px;*/
+            padding-right: 12px;
+            padding-bottom: 2px;
+            border-radius: 8px;
+            background-color: #cccccc;
+            opacity: 0.8;
+
+        }
+        .options{
+            border: 2px solid #ccc;
+            width: 48%;
+            border-radius: 8px;
+            margin-top: 4px;
+
+        }
+        .param{
+            padding: 8px;
+        }
+        #task{
+            width: 50%;
+        }
+
+        #loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.6);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+        .loading-text {
+        margin-top: 10px;
+        font-size: 16px;
+    }
+
+    /*    图片放大预览*/
+        .image-preview {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.4);
+            padding: 5px;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+            z-index: 999;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+        }
+
+        .image-wrapper {
+            display: flex;
+        }
+
+        .preview-image {
+            max-width: 50%;
+            height: auto;
+        }
+
+        .left {
+            margin-right: 2px;
+        }
+
+        .right {
+            margin-left: 2px;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div id="loader-container" style="display : none">
+        <div class="loader"></div>
+        <br>
+        <div class="loading-text" id="loadingText"></div>
+    </div>
+    <div id="image-preview" class="image-preview">
+        <span class="close"><strong>&times;</strong></span>
+        <div class="image-wrapper">
+            <img src="#" alt="Preview Image 1" class="preview-image left" id="img_left">
+            <img src="#" alt="Preview Image 2" class="preview-image right" id="img_right">
+        </div>
+    </div>
+    <div class="container">
+        <h1>游戏超分</h1>
+        <div class="preview-container">
+            <div>
+            <div id="inputPreview">
+
+                <label for="" class="tags">点击上传/拖动到此上传</label>
+                <input type="file" name="file" id="fileInput" accept="image/*" oninput="previewImage(event)" onchange="previewImage(event)">
+                <img src="#" alt="Input Image" id="inputImagePreview" style="display: none;">
+            </div>
+
+            </div>
+            <div>
+            <div id="outputPreview">
+                <label for="" class="tags">输出结果</label>
+                <img src="#" alt="Output Image" id="outputImagePreview" style="display: none;">
+<!--                <a id="downloadButton" href="#" download="output_image.jpg">点击下载</a>-->
+                <div id="download">
+                    <a href="" download="image" id="a_download">
+                        <button id="bu-download">
+<!--                            // aria-label="Download" title="Download"-->
+                                <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 32 32">
+                                    <path fill="currentColor"
+                                          d="M26 24v4H6v-4H4v4a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-4zm0-10l-1.41-1.41L17 20.17V2h-2v18.17l-7.59-7.58L6 14l10 10l10-10z"></path>
+                                </svg>
+                        </button>
+                    </a>
+                </div>
+
+            </div>
+
+            </div>
+        </div>
+        <div id="output"></div>
+    </div>
+    <div class="options" align="center">
+        <span class="param">
+            <label for="task">Task:</label>
+            <br>&emsp;
+            <select id="task" name="task">
+                <option value="realsr" selected>realsr</option>
+                <option value="bicsr">bicsr</option>
+            </select>
+        </span>
+        <hr>
+        <span class="param">
+            <label for="randomSeed">Random Seed:</label>
+            <br>&emsp;
+            <input type="button" value="-" onclick="decreaseValue()">
+            <input type="number" id="randomSeed" name="randomSeed" value="12345" step="1">
+            <input type="button" value="+" onclick="increaseValue()">
+        </span>
+        <br>
+        <br>
+<!--        <br>-->
+
+    </div>
+    <div class="commit">
+        <span>
+            <button id="genera" onclick="predict()">
+            点击生成
+            </button>
+        </span>
+    </div>
+
+
+    <script>
+        var timer;
+        var show_timer;
+
+        function previewImage(event) {
+            const inputImage = document.getElementById('inputImagePreview');
+            const outputImage = document.getElementById('outputImagePreview');
+            inputImage.style.display = 'block';
+            outputImage.style.display = 'none';
+
+            const compa_img = document.getElementById("img_left");
+
+
+            const input = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(){
+                inputImage.src = reader.result;
+                compa_img.src = reader.result;
+            };
+
+            reader.readAsDataURL(input);
+        }
+
+        function get_res(task_id){
+            const taskid = task_id
+            timer = setInterval(function() {
+            var xhr = new XMLHttpRequest();
+
+
+            xhr.open('POST', 'http://127.0.0.1:9001/get_res', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+
+                    // 检查获取到的数据是否满足条件
+                    if (data.res_img) {
+                        clearInterval(timer);
+                        clearInterval(show_timer);
+                        const load_ele = document.getElementById("loader-container")
+                        load_ele.style = "display : none"
+                        console.log('已获取到指定数据，定时器已停止');
+                        const outputImagePreview = document.getElementById("outputImagePreview");
+                        outputImagePreview.src = data.res_img;
+                        outputImagePreview.style = ""
+                        const a_download = document.getElementById("a_download")
+                        a_download.href = data.res_img;
+                        const compa_img = document.getElementById("img_right");
+                        compa_img.src = data.res_img;
+
+                    }
+                }
+            };
+                xhr.send(JSON.stringify({
+                    "task_id" : taskid
+                }));
+            }, 10000); // 每隔1秒发送一次请求
+        }
+
+
+        async function predict() {
+
+            const fileInputElement = document.getElementById("fileInput")
+            // 构建要上传的数据
+            const formData = new FormData();
+            formData.append('image', fileInputElement.files[0]);
+            formData.append('randomSeed', document.getElementById("randomSeed").value);
+            formData.append('task', document.getElementById("task").value);
+            const xhr = new XMLHttpRequest()
+
+            xhr.open('POST', 'http://127.0.0.1:9001/gener_task', true);
+
+            // 设置回调函数
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    // 请求成功
+                    var response = JSON.parse(xhr.responseText);
+                    console.log(response);
+                    if (response.code === 0){
+                        get_res(response.task_id)
+                        // alert("添加成功")
+                    }
+
+                } else {
+                    // 请求失败
+                    console.log('Error:', xhr.status);
+                }
+            };
+
+            // 发送请求
+            xhr.send(formData);
+            show_timer = setInterval(
+                showNextLetter,200
+            )
+            const load_ele = document.getElementById("loader-container")
+            load_ele.style = ""
+
+        }
+        function increaseValue() {
+            var value = parseInt(document.getElementById('randomSeed').value, 10);
+            value = isNaN(value) ? 0 : value;
+            value++;
+            document.getElementById('randomSeed').value = value;
+        }
+
+        function decreaseValue() {
+            var value = parseInt(document.getElementById('randomSeed').value, 10);
+            value = isNaN(value) ? 0 : value;
+            value--;
+            document.getElementById('randomSeed').value = value;
+        }
+
+
+
+        const loadingText = document.getElementById('loadingText');
+        const text = '加载中...';
+        let index = 0;
+
+        function showNextLetter() {
+            loadingText.textContent = text.substring(0, index);
+            index++;
+            if (index <= text.length) {
+                setTimeout(showNextLetter, 500);
+            }
+        }
+        // showNextLetter();
+    //     图片预览
+        const imagePreview = document.getElementById('image-preview');
+        const closeBtn = document.querySelector('.close');
+        const outputImagePreview_ele = document.getElementById("outputImagePreview")
+        closeBtn.addEventListener('click', function() {
+            imagePreview.style.display = 'none';
+        });
+        outputImagePreview_ele.addEventListener('click', function() {
+            imagePreview.style.display = 'block';
+        });
+
+    </script>
+</body>
+</html>
